@@ -73,7 +73,7 @@ class EdgeDetectionNodelet : public opencv_apps::Nodelet
   boost::shared_ptr<image_transport::ImageTransport> it_;
 
   edge_detection::EdgeDetectionConfig config_;
-  dynamic_reconfigure::Server<edge_detection::EdgeDetectionConfig> srv;
+  boost::shared_ptr<dynamic_reconfigure::Server<edge_detection::EdgeDetectionConfig> > srv_;
 
   bool debug_view_;
   ros::Time prev_stamp_;
@@ -128,6 +128,7 @@ class EdgeDetectionNodelet : public opencv_apps::Nodelet
 
   void do_work(const sensor_msgs::ImageConstPtr& msg, const std::string input_frame_from_msg)
   {
+    NODELET_ERROR("%d", config_.use_camera_info);
     // Work on the image.
     try
     {
@@ -221,7 +222,7 @@ class EdgeDetectionNodelet : public opencv_apps::Nodelet
               if (need_config_update_) {
                 config_.canny_threshold1 = canny_threshold1_;
                 config_.canny_threshold2 = canny_threshold2_;
-                srv.updateConfig(config_);
+                srv_->updateConfig(config_);
                 need_config_update_ = false;
               }
               if( window_name_ == new_window_name) {
@@ -258,6 +259,7 @@ class EdgeDetectionNodelet : public opencv_apps::Nodelet
   void subscribe()
   {
     NODELET_DEBUG("Subscribing to image topic.");
+    NODELET_ERROR("subscriber %d", config_.use_camera_info);
     if (config_.use_camera_info)
       cam_sub_ = it_->subscribeCamera("image", 3, &EdgeDetectionNodelet::imageCallbackWithInfo, this);
     else
@@ -275,6 +277,7 @@ public:
   virtual void onInit()
   {
     Nodelet::onInit();
+
     it_ = boost::shared_ptr<image_transport::ImageTransport>(new image_transport::ImageTransport(*nh_));
 
     pnh_->param("debug_view", debug_view_, false);
@@ -287,10 +290,10 @@ public:
     window_name_ = "Edge Detection Demo";
     canny_threshold1_ = 100; // only for canny
     canny_threshold2_ = 200; // only for canny
-
+    srv_ = boost::make_shared <dynamic_reconfigure::Server<edge_detection::EdgeDetectionConfig> > (*pnh_);
     dynamic_reconfigure::Server<edge_detection::EdgeDetectionConfig>::CallbackType f =
       boost::bind(&EdgeDetectionNodelet::reconfigureCallback, this, _1, _2);
-    srv.setCallback(f);
+    srv_->setCallback(f);
 
     img_pub_ = advertiseImage(*pnh_, "image", 1);
     //msg_pub_ = local_nh_.advertise<opencv_apps::LineArrayStamped>("lines", 1, msg_connect_cb, msg_disconnect_cb);
