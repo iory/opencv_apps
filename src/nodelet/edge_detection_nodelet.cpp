@@ -66,8 +66,9 @@
 namespace edge_detection {
 
 class EdgeDetectionNodelet
-  : public opencv_apps::Nodelet<edge_detection::EdgeDetectionConfig>
+  : public opencv_apps::Nodelet<edge_detection::EdgeDetectionNodelet, edge_detection::EdgeDetectionConfig>
 {
+  friend class opencv_apps::Nodelet<edge_detection::EdgeDetectionNodelet, edge_detection::EdgeDetectionConfig>;
   image_transport::Publisher img_pub_;
   image_transport::Subscriber img_sub_;
   image_transport::CameraSubscriber cam_sub_;
@@ -124,6 +125,10 @@ class EdgeDetectionNodelet
   static void trackbarCallback( int, void* )
   {
     need_config_update_ = true;
+  }
+
+  void hoge() {
+    NODELET_ERROR("hfdaj");
   }
 
   void do_work(const sensor_msgs::ImageConstPtr& msg, const std::string input_frame_from_msg)
@@ -274,7 +279,6 @@ class EdgeDetectionNodelet
   }
 
 public:
-  EdgeDetectionNodelet() {}
    void onInit()
   {
     Nodelet::onInit();
@@ -296,35 +300,6 @@ public:
     //msg_pub_ = local_nh_.advertise<opencv_apps::LineArrayStamped>("lines", 1, msg_connect_cb, msg_disconnect_cb);
 
     onInitPostProcess();
-  }
-   void onInitPostProcess() {
-    Nodelet::onInitPostProcess();
-  }
-   void connectionCallback(const ros::SingleSubscriberPublisher& pub){
-    Nodelet::connectionCallback(pub);
-  };
-     void imageConnectionCallback(
-                                         const image_transport::SingleSubscriberPublisher& pub) {
-      Nodelet::imageConnectionCallback(pub);
-    }
-
-   void cameraConnectionCallback(
-                                        const image_transport::SingleSubscriberPublisher& pub) {
-    Nodelet::cameraConnectionCallback(pub);
-  }
-
-
-     void cameraInfoConnectionCallback(
-                                              const ros::SingleSubscriberPublisher& pub) {
-      Nodelet::cameraInfoConnectionCallback(pub);
-    }
-
-   void cameraConnectionBaseCallback() {
-    Nodelet::cameraConnectionBaseCallback();
-  }
-
-   void warnNeverSubscribedCallback(const ros::WallTimerEvent& event) {
-    Nodelet::warnNeverSubscribedCallback(event);
   }
 
 

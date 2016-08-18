@@ -64,7 +64,7 @@ namespace opencv_apps
    * And create subscribers in subscribe() and shutdown them in unsubscribed().
    *
    */
-  template <typename DynamicReconfigureConfig>
+  template <class DerivedNodelet, typename DynamicReconfigureConfig>
   class Nodelet: public nodelet::Nodelet
   {
   public:
@@ -330,9 +330,178 @@ namespace opencv_apps
      * true if `~verbose_connection` or `verbose_connection` parameter is true.
      */
     bool verbose_connection_;
+
+      template <class T>
+          void Bind(void (T::*entry)(DynamicReconfigureConfig&, uint32_t)) {
+          typename dynamic_reconfigure::Server<DynamicReconfigureConfig>::CallbackType f =
+              boost::bind(entry, this, _1, _2);
+          dynamic_reconfigure_server_->setCallback(f);
+      }
+
   private:
 
   };
+
+template <class DerivedNodelet, typename DynamicReconfigureConfig>
+void Nodelet<DerivedNodelet, DynamicReconfigureConfig>::onInit()
+  {
+    connection_status_ = NOT_SUBSCRIBED;
+    nh_.reset (new ros::NodeHandle (getMTNodeHandle ()));
+    pnh_.reset (new ros::NodeHandle (getMTPrivateNodeHandle ()));
+    pnh_->param("always_subscribe", always_subscribe_, false);
+    pnh_->param("verbose_connection", verbose_connection_, false);
+
+    dynamic_reconfigure_server_ = boost::make_shared <dynamic_reconfigure::Server<DynamicReconfigureConfig> > (*pnh_);
+    static_cast<DerivedNodelet*>(this)->hoge();
+    Bind(&DerivedNodelet::reconfigureCallback);
+    // typename dynamic_reconfigure::Server<DynamicReconfigureConfig>::CallbackType f =
+    //     boost::bind(&DerivedNodelet::reconfigureCallback, this, _1, _2);
+    //     // boost::bind(&static_cast<DerivedNodelet*>(this)->reconfigureCallback, this, _1, _2);
+    // dynamic_reconfigure_server_->setCallback(f);
+    if (!verbose_connection_) {
+      nh_->param("verbose_connection", verbose_connection_, false);
+    }
+    // timer to warn when no connection in a few seconds
+    ever_subscribed_ = false;
+    timer_ = nh_->createWallTimer(
+      ros::WallDuration(5),
+      &Nodelet<DerivedNodelet, DynamicReconfigureConfig>::warnNeverSubscribedCallback,
+      this,
+      /*oneshot=*/true);
+  }
+
+template <class DerivedNodelet, typename DynamicReconfigureConfig>
+void Nodelet<DerivedNodelet, DynamicReconfigureConfig>::onInitPostProcess()
+  {
+    if (always_subscribe_) {
+      subscribe();
+    }
+  }
+
+template <class DerivedNodelet, typename DynamicReconfigureConfig>
+  void Nodelet<DerivedNodelet, DynamicReconfigureConfig>::warnNeverSubscribedCallback(const ros::WallTimerEvent& event)
+  {
+    if (!ever_subscribed_) {
+      NODELET_WARN("'%s' subscribes topics only with child subscribers.", nodelet::Nodelet::getName().c_str());
+    }
+  }
+
+template <class DerivedNodelet, typename DynamicReconfigureConfig>
+void Nodelet<DerivedNodelet, DynamicReconfigureConfig>::connectionCallback(const ros::SingleSubscriberPublisher& pub)
+  {
+    if (verbose_connection_) {
+      NODELET_INFO("New connection or disconnection is detected");
+    }
+    if (!always_subscribe_) {
+      boost::mutex::scoped_lock lock(connection_mutex_);
+      for (size_t i = 0; i < publishers_.size(); i++) {
+        ros::Publisher pub = publishers_[i];
+        if (pub.getNumSubscribers() > 0) {
+          if (!ever_subscribed_) {
+            ever_subscribed_ = true;
+          }
+          if (connection_status_ != SUBSCRIBED) {
+            if (verbose_connection_) {
+              NODELET_INFO("Subscribe input topics");
+            }
+            subscribe();
+            connection_status_ = SUBSCRIBED;
+          }
+          return;
+        }
+      }
+      if (connection_status_ == SUBSCRIBED) {
+        if (verbose_connection_) {
+          NODELET_INFO("Unsubscribe input topics");
+        }
+        unsubscribe();
+        connection_status_ = NOT_SUBSCRIBED;
+      }
+    }
+  }
+
+template <class DerivedNodelet, typename DynamicReconfigureConfig>
+  void Nodelet<DerivedNodelet, DynamicReconfigureConfig>::imageConnectionCallback(
+    const image_transport::SingleSubscriberPublisher& pub)
+  {
+    if (verbose_connection_) {
+      NODELET_INFO("New image connection or disconnection is detected");
+    }
+    if (!always_subscribe_) {
+      boost::mutex::scoped_lock lock(connection_mutex_);
+      for (size_t i = 0; i < image_publishers_.size(); i++) {
+        image_transport::Publisher pub = image_publishers_[i];
+        if (pub.getNumSubscribers() > 0) {
+          if (!ever_subscribed_) {
+            ever_subscribed_ = true;
+          }
+          if (connection_status_ != SUBSCRIBED) {
+            if (verbose_connection_) {
+              NODELET_INFO("Subscribe input topics");
+            }
+            subscribe();
+            connection_status_ = SUBSCRIBED;
+          }
+          return;
+        }
+      }
+      if (connection_status_ == SUBSCRIBED) {
+        if (verbose_connection_) {
+          NODELET_INFO("Unsubscribe input topics");
+        }
+        unsubscribe();
+        connection_status_ = NOT_SUBSCRIBED;
+      }
+    }
+  }
+
+template <class DerivedNodelet, typename DynamicReconfigureConfig>
+  void Nodelet<DerivedNodelet, DynamicReconfigureConfig>::cameraConnectionCallback(
+    const image_transport::SingleSubscriberPublisher& pub)
+  {
+    cameraConnectionBaseCallback();
+  }
+
+template <class DerivedNodelet, typename DynamicReconfigureConfig>
+  void Nodelet<DerivedNodelet, DynamicReconfigureConfig>::cameraInfoConnectionCallback(
+    const ros::SingleSubscriberPublisher& pub)
+  {
+    cameraConnectionBaseCallback();
+  }
+
+template <class DerivedNodelet, typename DynamicReconfigureConfig>
+  void Nodelet<DerivedNodelet, DynamicReconfigureConfig>::cameraConnectionBaseCallback()
+  {
+    if (verbose_connection_) {
+      NODELET_INFO("New image connection or disconnection is detected");
+    }
+    if (!always_subscribe_) {
+      boost::mutex::scoped_lock lock(connection_mutex_);
+      for (size_t i = 0; i < camera_publishers_.size(); i++) {
+        image_transport::CameraPublisher pub = camera_publishers_[i];
+        if (pub.getNumSubscribers() > 0) {
+          if (!ever_subscribed_) {
+            ever_subscribed_ = true;
+          }
+          if (connection_status_ != SUBSCRIBED) {
+            if (verbose_connection_) {
+              NODELET_INFO("Subscribe input topics");
+            }
+            subscribe();
+            connection_status_ = SUBSCRIBED;
+          }
+          return;
+        }
+      }
+      if (connection_status_ == SUBSCRIBED) {
+        if (verbose_connection_) {
+          NODELET_INFO("Unsubscribe input topics");
+        }
+        unsubscribe();
+        connection_status_ = NOT_SUBSCRIBED;
+      }
+    }
+  }
 }
 
 #endif
