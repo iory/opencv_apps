@@ -39,6 +39,8 @@
 #include <nodelet/nodelet.h>
 #include <boost/thread.hpp>
 #include <image_transport/image_transport.h>
+#include <dynamic_reconfigure/server.h>
+#include <opencv_apps/NodeletConfig.h>
 
 namespace opencv_apps
 {
@@ -51,7 +53,7 @@ namespace opencv_apps
     NOT_SUBSCRIBED,
     SUBSCRIBED
   };
-  
+
   /** @brief
    * Nodelet to automatically subscribe/unsubscribe
    * topics according to subscription of advertised topics.
@@ -62,12 +64,13 @@ namespace opencv_apps
    * And create subscribers in subscribe() and shutdown them in unsubscribed().
    *
    */
+  template <typename DynamicReconfigureConfig>
   class Nodelet: public nodelet::Nodelet
   {
   public:
     Nodelet(): subscribed_(false) { }
   protected:
-    
+
     /** @brief
      * Initialize nodehandles nh_ and pnh_. Subclass should call
      * this method in its onInit method
@@ -81,7 +84,7 @@ namespace opencv_apps
      * feature.
      */
     virtual void onInitPostProcess();
-    
+
     /** @brief
      * callback function which is called when new subscriber come
      */
@@ -100,14 +103,14 @@ namespace opencv_apps
      */
     virtual void cameraConnectionCallback(
       const image_transport::SingleSubscriberPublisher& pub);
-    
+
     /** @brief
      * callback function which is called when new subscriber come for
      * camera info publisher
      */
     virtual void cameraInfoConnectionCallback(
       const ros::SingleSubscriberPublisher& pub);
-    
+
     /** @brief
      * callback function which is called when new subscriber come for camera
      * image publisher or camera info publisher.
@@ -124,7 +127,7 @@ namespace opencv_apps
 
     /** @brief
      * This method is called when publisher is subscribed by other
-     * nodes. 
+     * nodes.
      * Set up subscribers in this method.
      */
     virtual void subscribe() = 0;
@@ -137,9 +140,16 @@ namespace opencv_apps
     virtual void unsubscribe() = 0;
 
     /** @brief
+     * Callback function for dynamic reconfigure
+     */
+    virtual void reconfigureCallback(DynamicReconfigureConfig &new_config, uint32_t level) {
+      config_ = new_config;
+    }
+
+    /** @brief
      * Advertise a topic and watch the publisher. Publishers which are
      * created by this method.
-     * It automatically reads latch boolean parameter from nh and 
+     * It automatically reads latch boolean parameter from nh and
      * publish topic with appropriate latch parameter.
      *
      * @param nh NodeHandle.
@@ -165,7 +175,7 @@ namespace opencv_apps
                                            ros::VoidConstPtr(),
                                            latch);
       publishers_.push_back(ret);
-      
+
       return ret;
     }
 
@@ -246,13 +256,13 @@ namespace opencv_apps
       camera_publishers_.push_back(pub);
       return pub;
     }
-    
+
     /** @brief
      * mutex to call subscribe() and unsubscribe() in
      * critical section.
      */
     boost::mutex connection_mutex_;
-    
+
     /** @brief
      * List of watching publishers
      */
@@ -279,6 +289,16 @@ namespace opencv_apps
     boost::shared_ptr<ros::NodeHandle> pnh_;
 
     /** @brief
+     * Dynamic reconfigure server
+     */
+    boost::shared_ptr<dynamic_reconfigure::Server<DynamicReconfigureConfig> > dynamic_reconfigure_server_;
+
+    /** @brief
+     * Config of dynamic reconfigure
+     */
+    DynamicReconfigureConfig config_;
+
+    /** @brief
      * WallTimer instance for warning about no connection.
      */
     ros::WallTimer timer_;
@@ -296,7 +316,7 @@ namespace opencv_apps
     bool ever_subscribed_;
 
     /** @brief
-     * A flag to disable watching mechanism and always subscribe input 
+     * A flag to disable watching mechanism and always subscribe input
      * topics. It can be specified via ~always_subscribe parameter.
      */
     bool always_subscribe_;
@@ -311,7 +331,7 @@ namespace opencv_apps
      */
     bool verbose_connection_;
   private:
-    
+
   };
 }
 

@@ -11,6 +11,7 @@ endif()
 
 # generate the dynamic_reconfigure config file
 generate_dynamic_reconfigure_options(
+  cfg/Nodelet.cfg
   cfg/EdgeDetection.cfg cfg/HoughLines.cfg cfg/HoughCircles.cfg
   cfg/FindContours.cfg cfg/ConvexHull.cfg cfg/GeneralContours.cfg cfg/ContourMoments.cfg
   cfg/FaceDetection.cfg
@@ -78,9 +79,9 @@ catkin_package(CATKIN_DEPENDS std_msgs
 include_directories(include ${catkin_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS})
 
 ## Declare a cpp library
-if(OPENCV_HAVE_OPTFLOW)
-  list(APPEND ${PROJECT_NAME}_EXTRA_FILES src/nodelet/simple_flow_nodelet.cpp)
-endif()
+# if(OPENCV_HAVE_OPTFLOW)
+#   list(APPEND ${PROJECT_NAME}_EXTRA_FILES src/nodelet/simple_flow_nodelet.cpp)
+# endif()
 
 ## Macro to add nodelets
 macro(opencv_apps_add_nodelet node_name nodelet_name nodelet_cppfile)
@@ -97,52 +98,52 @@ endmacro()
 # https://github.com/Itseez/opencv/blob/2.4/samples/cpp/tutorial_code
 # ImgTrans
 opencv_apps_add_nodelet(edge_detection edge_detection/edge_detection src/nodelet/edge_detection_nodelet.cpp)
-opencv_apps_add_nodelet(hough_lines hough_lines/hough_lines src/nodelet/hough_lines_nodelet.cpp)
-opencv_apps_add_nodelet(hough_circles hough_circles/hough_circles src/nodelet/hough_circles_nodelet.cpp)
-# ShapeDescriptors
-opencv_apps_add_nodelet(find_contours find_contours/find_contours src/nodelet/find_contours_nodelet.cpp)
-opencv_apps_add_nodelet(convex_hull convex_hull/convex_hull src/nodelet/convex_hull_nodelet.cpp)
-opencv_apps_add_nodelet(general_contours general_contours/general_contours src/nodelet/general_contours_nodelet.cpp)
-opencv_apps_add_nodelet(contour_moments contour_moments/contour_moments src/nodelet/contour_moments_nodelet.cpp)
-# objectDetection
-opencv_apps_add_nodelet(face_detection face_detection/face_detection src/nodelet/face_detection_nodelet.cpp)
-opencv_apps_add_nodelet(people_detect people_detect/people_detect src/nodelet/people_detect_nodelet.cpp)
+# opencv_apps_add_nodelet(hough_lines hough_lines/hough_lines src/nodelet/hough_lines_nodelet.cpp)
+# opencv_apps_add_nodelet(hough_circles hough_circles/hough_circles src/nodelet/hough_circles_nodelet.cpp)
+# # ShapeDescriptors
+# opencv_apps_add_nodelet(find_contours find_contours/find_contours src/nodelet/find_contours_nodelet.cpp)
+# opencv_apps_add_nodelet(convex_hull convex_hull/convex_hull src/nodelet/convex_hull_nodelet.cpp)
+# opencv_apps_add_nodelet(general_contours general_contours/general_contours src/nodelet/general_contours_nodelet.cpp)
+# opencv_apps_add_nodelet(contour_moments contour_moments/contour_moments src/nodelet/contour_moments_nodelet.cpp)
+# # objectDetection
+# opencv_apps_add_nodelet(face_detection face_detection/face_detection src/nodelet/face_detection_nodelet.cpp)
+# opencv_apps_add_nodelet(people_detect people_detect/people_detect src/nodelet/people_detect_nodelet.cpp)
   # bgfg_gmg.cpp
   # bgfg_segm.cpp
   # calibration.cpp
 # TrackingMotion
-opencv_apps_add_nodelet(goodfeature_track goodfeature_track/goodfeature_track src/nodelet/goodfeature_track_nodelet.cpp)
-# Samples
-opencv_apps_add_nodelet(camshift camshift/camshift src/nodelet/camshift_nodelet.cpp)
-opencv_apps_add_nodelet(simple_example simple_example/simple_example src/nodelet/simple_example_nodelet.cpp)
-opencv_apps_add_nodelet(simple_compressed_example simple_compressed_example/simple_compressed_example src/nodelet/simple_compressed_example_nodelet.cpp)
-# Optical Flow
-opencv_apps_add_nodelet(fback_flow fback_flow/fback_flow src/nodelet/fback_flow_nodelet.cpp)
-  # fback.cpp
-  # hybridtrackingsample.cpp
-  # image_sequence.cpp
-  # intelperc_capture.cpp
-  # laplace.cpp
-  # linemod.cpp
-  # lkdemo.cpp
-opencv_apps_add_nodelet(lk_flow lk_flow/lk_flow src/nodelet/lk_flow_nodelet.cpp)
-# Others
-opencv_apps_add_nodelet(phase_corr phase_corr/phase_corr src/nodelet/phase_corr_nodelet.cpp)
-  # phase_corr.cpp
-  # retinaDemo.cpp
-  # segment_objects.cpp
-# Segmentation
-opencv_apps_add_nodelet(segment_objects segment_objects/segment_objects src/nodelet/segment_objects_nodelet.cpp)
-  # select3dobj.cpp
-# simple flow requires opencv-contrib https://github.com/ros-perception/vision_opencv/issues/108
-if(OPENCV_HAVE_OPTFLOW)
-  opencv_apps_add_nodelet(simple_flow simple_flow/simple_flow src/nodelet/simple_flow_nodelet.cpp)
-endif()
-  # starter_video.cpp
-  # videocapture_pvapi.cpp
-  # video_dmtx.cpp
-  # video_homography.cpp
-opencv_apps_add_nodelet(watershed_segmentation watershed_segmentation/watershed_segmentation src/nodelet/watershed_segmentation_nodelet.cpp)
+# opencv_apps_add_nodelet(goodfeature_track goodfeature_track/goodfeature_track src/nodelet/goodfeature_track_nodelet.cpp)
+# # Samples
+# opencv_apps_add_nodelet(camshift camshift/camshift src/nodelet/camshift_nodelet.cpp)
+# opencv_apps_add_nodelet(simple_example simple_example/simple_example src/nodelet/simple_example_nodelet.cpp)
+# opencv_apps_add_nodelet(simple_compressed_example simple_compressed_example/simple_compressed_example src/nodelet/simple_compressed_example_nodelet.cpp)
+# # Optical Flow
+# opencv_apps_add_nodelet(fback_flow fback_flow/fback_flow src/nodelet/fback_flow_nodelet.cpp)
+#   # fback.cpp
+#   # hybridtrackingsample.cpp
+#   # image_sequence.cpp
+#   # intelperc_capture.cpp
+#   # laplace.cpp
+#   # linemod.cpp
+#   # lkdemo.cpp
+# opencv_apps_add_nodelet(lk_flow lk_flow/lk_flow src/nodelet/lk_flow_nodelet.cpp)
+# # Others
+# opencv_apps_add_nodelet(phase_corr phase_corr/phase_corr src/nodelet/phase_corr_nodelet.cpp)
+#   # phase_corr.cpp
+#   # retinaDemo.cpp
+#   # segment_objects.cpp
+# # Segmentation
+# opencv_apps_add_nodelet(segment_objects segment_objects/segment_objects src/nodelet/segment_objects_nodelet.cpp)
+#   # select3dobj.cpp
+# # simple flow requires opencv-contrib https://github.com/ros-perception/vision_opencv/issues/108
+# if(OPENCV_HAVE_OPTFLOW)
+#   opencv_apps_add_nodelet(simple_flow simple_flow/simple_flow src/nodelet/simple_flow_nodelet.cpp)
+# endif()
+#   # starter_video.cpp
+#   # videocapture_pvapi.cpp
+#   # video_dmtx.cpp
+#   # video_homography.cpp
+# opencv_apps_add_nodelet(watershed_segmentation watershed_segmentation/watershed_segmentation src/nodelet/watershed_segmentation_nodelet.cpp)
 
 add_library(${PROJECT_NAME} SHARED
   src/nodelet/nodelet.cpp

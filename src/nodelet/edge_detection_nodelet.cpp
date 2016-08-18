@@ -61,9 +61,12 @@
 
 #include <dynamic_reconfigure/server.h>
 #include "opencv_apps/EdgeDetectionConfig.h"
+#include <pluginlib/class_list_macros.h>
 
 namespace edge_detection {
-class EdgeDetectionNodelet : public opencv_apps::Nodelet
+
+class EdgeDetectionNodelet
+  : public opencv_apps::Nodelet<edge_detection::EdgeDetectionConfig>
 {
   image_transport::Publisher img_pub_;
   image_transport::Subscriber img_sub_;
@@ -71,9 +74,6 @@ class EdgeDetectionNodelet : public opencv_apps::Nodelet
   ros::Publisher msg_pub_;
 
   boost::shared_ptr<image_transport::ImageTransport> it_;
-
-  edge_detection::EdgeDetectionConfig config_;
-  boost::shared_ptr<dynamic_reconfigure::Server<edge_detection::EdgeDetectionConfig> > srv_;
 
   bool debug_view_;
   ros::Time prev_stamp_;
@@ -222,7 +222,7 @@ class EdgeDetectionNodelet : public opencv_apps::Nodelet
               if (need_config_update_) {
                 config_.canny_threshold1 = canny_threshold1_;
                 config_.canny_threshold2 = canny_threshold2_;
-                srv_->updateConfig(config_);
+                dynamic_reconfigure_server_->updateConfig(config_);
                 need_config_update_ = false;
               }
               if( window_name_ == new_window_name) {
@@ -274,7 +274,8 @@ class EdgeDetectionNodelet : public opencv_apps::Nodelet
   }
 
 public:
-  virtual void onInit()
+  EdgeDetectionNodelet() {}
+   void onInit()
   {
     Nodelet::onInit();
 
@@ -290,19 +291,46 @@ public:
     window_name_ = "Edge Detection Demo";
     canny_threshold1_ = 100; // only for canny
     canny_threshold2_ = 200; // only for canny
-    srv_ = boost::make_shared <dynamic_reconfigure::Server<edge_detection::EdgeDetectionConfig> > (*pnh_);
-    dynamic_reconfigure::Server<edge_detection::EdgeDetectionConfig>::CallbackType f =
-      boost::bind(&EdgeDetectionNodelet::reconfigureCallback, this, _1, _2);
-    srv_->setCallback(f);
 
     img_pub_ = advertiseImage(*pnh_, "image", 1);
     //msg_pub_ = local_nh_.advertise<opencv_apps::LineArrayStamped>("lines", 1, msg_connect_cb, msg_disconnect_cb);
 
     onInitPostProcess();
   }
+   void onInitPostProcess() {
+    Nodelet::onInitPostProcess();
+  }
+   void connectionCallback(const ros::SingleSubscriberPublisher& pub){
+    Nodelet::connectionCallback(pub);
+  };
+     void imageConnectionCallback(
+                                         const image_transport::SingleSubscriberPublisher& pub) {
+      Nodelet::imageConnectionCallback(pub);
+    }
+
+   void cameraConnectionCallback(
+                                        const image_transport::SingleSubscriberPublisher& pub) {
+    Nodelet::cameraConnectionCallback(pub);
+  }
+
+
+     void cameraInfoConnectionCallback(
+                                              const ros::SingleSubscriberPublisher& pub) {
+      Nodelet::cameraInfoConnectionCallback(pub);
+    }
+
+   void cameraConnectionBaseCallback() {
+    Nodelet::cameraConnectionBaseCallback();
+  }
+
+   void warnNeverSubscribedCallback(const ros::WallTimerEvent& event) {
+    Nodelet::warnNeverSubscribedCallback(event);
+  }
+
+
 };
 bool EdgeDetectionNodelet::need_config_update_ = false;
 }
 
-#include <pluginlib/class_list_macros.h>
+typedef edge_detection::EdgeDetectionNodelet EdgeDetectionNodelet;
 PLUGINLIB_EXPORT_CLASS(edge_detection::EdgeDetectionNodelet, nodelet::Nodelet);

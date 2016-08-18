@@ -37,13 +37,19 @@
 
 namespace opencv_apps
 {
-  void Nodelet::onInit()
+template <typename DynamicReconfigureConfig>
+void Nodelet<DynamicReconfigureConfig>::onInit()
   {
     connection_status_ = NOT_SUBSCRIBED;
     nh_.reset (new ros::NodeHandle (getMTNodeHandle ()));
     pnh_.reset (new ros::NodeHandle (getMTPrivateNodeHandle ()));
     pnh_->param("always_subscribe", always_subscribe_, false);
     pnh_->param("verbose_connection", verbose_connection_, false);
+
+    dynamic_reconfigure_server_ = boost::make_shared <dynamic_reconfigure::Server<DynamicReconfigureConfig> > (*pnh_);
+    typename dynamic_reconfigure::Server<DynamicReconfigureConfig>::CallbackType f =
+        boost::bind(&this->reconfigureCallback, this, _1, _2);
+    dynamic_reconfigure_server_->setCallback(f);
     if (!verbose_connection_) {
       nh_->param("verbose_connection", verbose_connection_, false);
     }
@@ -51,26 +57,29 @@ namespace opencv_apps
     ever_subscribed_ = false;
     timer_ = nh_->createWallTimer(
       ros::WallDuration(5),
-      &Nodelet::warnNeverSubscribedCallback,
+      &Nodelet<DynamicReconfigureConfig>::warnNeverSubscribedCallback,
       this,
       /*oneshot=*/true);
   }
 
-  void Nodelet::onInitPostProcess()
+template <typename DynamicReconfigureConfig>
+void Nodelet<DynamicReconfigureConfig>::onInitPostProcess()
   {
     if (always_subscribe_) {
       subscribe();
     }
   }
 
-  void Nodelet::warnNeverSubscribedCallback(const ros::WallTimerEvent& event)
+template <typename DynamicReconfigureConfig>
+  void Nodelet<DynamicReconfigureConfig>::warnNeverSubscribedCallback(const ros::WallTimerEvent& event)
   {
     if (!ever_subscribed_) {
       NODELET_WARN("'%s' subscribes topics only with child subscribers.", nodelet::Nodelet::getName().c_str());
     }
   }
 
-  void Nodelet::connectionCallback(const ros::SingleSubscriberPublisher& pub)
+template <typename DynamicReconfigureConfig>
+void Nodelet<DynamicReconfigureConfig>::connectionCallback(const ros::SingleSubscriberPublisher& pub)
   {
     if (verbose_connection_) {
       NODELET_INFO("New connection or disconnection is detected");
@@ -102,8 +111,9 @@ namespace opencv_apps
       }
     }
   }
-  
-  void Nodelet::imageConnectionCallback(
+
+template <typename DynamicReconfigureConfig>
+  void Nodelet<DynamicReconfigureConfig>::imageConnectionCallback(
     const image_transport::SingleSubscriberPublisher& pub)
   {
     if (verbose_connection_) {
@@ -137,19 +147,22 @@ namespace opencv_apps
     }
   }
 
-  void Nodelet::cameraConnectionCallback(
+template <typename DynamicReconfigureConfig>
+  void Nodelet<DynamicReconfigureConfig>::cameraConnectionCallback(
     const image_transport::SingleSubscriberPublisher& pub)
   {
     cameraConnectionBaseCallback();
   }
 
-  void Nodelet::cameraInfoConnectionCallback(
+template <typename DynamicReconfigureConfig>
+  void Nodelet<DynamicReconfigureConfig>::cameraInfoConnectionCallback(
     const ros::SingleSubscriberPublisher& pub)
   {
     cameraConnectionBaseCallback();
   }
 
-  void Nodelet::cameraConnectionBaseCallback()
+template <typename DynamicReconfigureConfig>
+  void Nodelet<DynamicReconfigureConfig>::cameraConnectionBaseCallback()
   {
     if (verbose_connection_) {
       NODELET_INFO("New image connection or disconnection is detected");
