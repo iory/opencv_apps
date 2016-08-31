@@ -4,7 +4,8 @@
 
   <group ns="wide_stereo/left" >
     <node name="image_proc" pkg="image_proc" type="image_proc" />
-    <node name="image_view" pkg="image_view" type="image_view" args="image:=image_rect_color" if="$(arg gui)" />
+    <node name="image_view0" pkg="image_view" type="image_view" args="image:=image_rect_color" if="$(arg gui)" />
+    <node name="image_view1" pkg="image_view" type="image_view" args="image:=hough_lines/image" if="$(arg gui)" />
 
     <node name="hough_lines"
           pkg="opencv_apps" type="hough_lines">
