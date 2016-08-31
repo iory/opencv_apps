@@ -1,8 +1,7 @@
 <launch>
   <arg name="gui" default="true" />
-  <node name="play_face_bag" pkg="rosbag" type="play" args="-l $(find opencv_apps)/test/face_detector_withface_test_diamondback.bag" />
 
-  <group ns="wide_stereo/left" >
+  <group ns="camera_remote/rgb" >
     <node name="image_proc" pkg="image_proc" type="image_proc" />
     <node name="image_view0" pkg="image_view" type="image_view" args="image:=image_rect_color" if="$(arg gui)" />
     <node name="image_view1" pkg="image_view" type="image_view" args="image:=hough_lines/image" if="$(arg gui)" />

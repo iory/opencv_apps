@@ -110,9 +110,9 @@ namespace adding_images {
 
     void subscribe() {
       NODELET_DEBUG("Subscribing to image topic.");
-      sub_image1_.subscribe(*it_, "image1", 1);
-      sub_image2_.subscribe(*it_, "image2", 1);
-      sub_camera_info_.subscribe(*pnh_, "info", 1);
+      sub_image1_.subscribe(*it_, "image1", 3);
+      sub_image2_.subscribe(*it_, "image2", 3);
+      sub_camera_info_.subscribe(*pnh_, "info", 3);
       if (config_.use_camera_info) {
         if (approximate_sync_) {
           async_with_info_ = boost::make_shared<
@@ -179,7 +179,7 @@ namespace adding_images {
           int c = cv::waitKey(1);
         }
         img_pub_.publish(cv_bridge::CvImage(image_msg1->header,
-                                            image_msg1->encoding,
+                                            sensor_msgs::image_encodings::RGB8,
                                             result_image).toImageMsg());
 
       } catch (cv::Exception& e) {
