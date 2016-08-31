@@ -83,23 +83,52 @@ namespace adding_images {
     double beta_;
     double gamma_;
 
+    void imageCallbackWithInfo(
+      const sensor_msgs::ImageConstPtr& msg1,
+      const sensor_msgs::ImageConstPtr& msg2,
+      const sensor_msgs::CameraInfoConstPtr& cam_info) {
+      do_work(msg1, msg2, cam_info->header.frame_id);
+    }
+
+    void imageCallback(const sensor_msgs::ImageConstPtr& msg1,
+                       const sensor_msgs::ImageConstPtr& msg2) {
+      do_work(msg1, msg2, msg->header.frame_id);
+    }
+
+    static void trackbarCallback(int, void*) { need_config_update_ = true; }
+
     void subscribe() {
       NODELET_DEBUG("Subscribing to image topic.");
       sub_image1_.subscribe(*it_, "image1", 1);
       sub_image2_.subscribe(*it_, "image2", 1);
-      if (approximate_sync_) {
-        async_ =
-          boost::make_shared<message_filters::Synchronizer<ApproxSyncPolicy> >(
-            100);
-        async_->connectInput(sub_image1_, sub_image2_);
-        async_->registerCallback(
-          boost::bind(&AddingImagesNodelet::add, this, _1, _2));
+      if (config_.use_camera_info) {
+        if (approximate_sync_) {
+          async_ = boost::make_shared<
+            message_filters::Synchronizer<ApproxSyncPolicy> >(100);
+          async_->connectInput(sub_image1_, sub_image2_);
+          async_->registerCallback(boost::bind(
+            &AddingImagesNodelet::imageCallbackWithInfo, this, _1, _2));
+        } else {
+          sync_ =
+            boost::make_shared<message_filters::Synchronizer<SyncPolicy> >(100);
+          sync_->connectInput(sub_image1_, sub_image2_);
+          sync_->registerCallback(boost::bind(
+            &AddingImagesNodelet::imageCallbackWithInfo, this, _1, _2));
+        }
       } else {
-        sync_ =
-          boost::make_shared<message_filters::Synchronizer<SyncPolicy> >(100);
-        sync_->connectInput(sub_image1_, sub_image2_);
-        sync_->registerCallback(
-          boost::bind(&AddingImagesNodelet::add, this, _1, _2));
+        if (approximate_sync_) {
+          async_ = boost::make_shared<
+            message_filters::Synchronizer<ApproxSyncPolicy> >(100);
+          async_->connectInput(sub_image1_, sub_image2_);
+          async_->registerCallback(
+            boost::bind(&AddingImagesNodelet::imageCallback, this, _1, _2));
+        } else {
+          sync_ =
+            boost::make_shared<message_filters::Synchronizer<SyncPolicy> >(100);
+          sync_->connectInput(sub_image1_, sub_image2_);
+          sync_->registerCallback(
+            boost::bind(&AddingImagesNodelet::imageCallback, this, _1, _2));
+        }
       }
     }
 
@@ -117,17 +146,49 @@ namespace adding_images {
       gamma_ = config.gamma;
     }
 
-    void add(const sensor_msgs::Image::ConstPtr& image_msg1,
-             const sensor_msgs::Image::ConstPtr& image_msg2) {
-      cv::Mat image1 =
-        cv_bridge::toCvShare(image_msg1, image_msg1->encoding)->image;
-      cv::Mat image2 =
-        cv_bridge::toCvShare(image_msg2, image_msg2->encoding)->image;
-      cv::Mat result_image;
-      cv::addWeighted(image1, alpha_, image2, beta_, gamma_, result_image);
-      img_pub_.publish(cv_bridge::CvImage(image_msg1->header,
-                                          image_msg1->encoding,
-                                          result_image).toImageMsg());
+    void do_work(const sensor_msgs::Image::ConstPtr& image_msg1,
+                 const sensor_msgs::Image::ConstPtr& image_msg2,
+                 const std::string input_frame_from_msg) {
+      // Work on the image.
+      try {
+        cv::Mat image1 =
+          cv_bridge::toCvShare(image_msg1, image_msg1->encoding)->image;
+        cv::Mat image2 =
+          cv_bridge::toCvShare(image_msg2, image_msg2->encoding)->image;
+        if (debug_view_) {
+          /// Create Trackbars for Parameter
+          cv::namedWindow(window_name_, cv::WINDOW_AUTOSIZE);
+
+          cv::createTrackbar("alpha", window_name_, &alpha_, 1,
+                             trackbarCallback);
+          cv::createTrackbar("gamma", window_name_, &gamma_, 256,
+                             trackbarCallback);
+
+          if (need_config_update_) {
+            config_.alpha = alpha_;
+            config_.gamma = gamma_;
+            reconfigure_server_->updateConfig(config_);
+            need_config_update_ = false;
+          }
+        }
+
+        cv::Mat result_image;
+        cv::addWeighted(image1, alpha_, image2, beta_, gamma_, result_image);
+        //-- Show what you got
+        if (debug_view_) {
+          cv::imshow(window_name_, out_image);
+          int c = cv::waitKey(1);
+        }
+        img_pub_.publish(cv_bridge::CvImage(image_msg1->header,
+                                            image_msg1->encoding,
+                                            result_image).toImageMsg());
+
+      } catch (cv::Exception& e) {
+        NODELET_ERROR("Image processing error: %s %s %s %i", e.err.c_str(),
+                      e.func.c_str(), e.file.c_str(), e.line);
+      }
+
+      prev_stamp_ = msg->header.stamp;
     }
 
   public:
@@ -136,6 +197,13 @@ namespace adding_images {
       it_ = boost::shared_ptr<image_transport::ImageTransport>(
         new image_transport::ImageTransport(*nh_));
 
+      pnh_->param("debug_view", debug_view_, false);
+      if (debug_view_) {
+        always_subscribe_ = true;
+      }
+      prev_stamp_ = ros::Time(0, 0);
+
+      window_name_ = "AddingImages Demo";
       ////////////////////////////////////////////////////////
       // Dynamic Reconfigure
       ////////////////////////////////////////////////////////
