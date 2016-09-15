@@ -59,6 +59,10 @@
     <description>Nodelet to demonstrates dense optical flow algorithm by Gunnar Farneback</description>
   </class>
 
+  <class name="line_segment_detector/line_segment_detector" type="line_segment_detector::LineSegmentDetectorNodelet" base_class_type="nodelet::Nodelet">
+    <description>Nodelet to detector line segments</description>
+  </class>
+
   <class name="lk_flow/lk_flow" type="lk_flow::LKFlowNodelet" base_class_type="nodelet::Nodelet">
     <description>Nodelet to calculate Lukas-Kanade optical flow</description>
   </class>
