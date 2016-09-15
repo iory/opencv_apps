@@ -49,6 +49,11 @@
  * @brief Sample code showing how to detect edges using the Canny Detector
  * @author OpenCV team
  */
+/**
+ * @file https://github.com/opencv/opencv/blob/master/samples/cpp/lsd_lines.cpp
+ * @brief Sample code showing how to detect edges using the LineSegmentDetector
+ * @author OpenCV team
+ */
 
 #include <ros/ros.h>
 #include "opencv_apps/nodelet.h"
@@ -88,6 +93,15 @@ class EdgeDetectionNodelet : public opencv_apps::Nodelet
   bool apply_blur_post_;
   int  postBlurSize_;
   double  postBlurSigma_;
+  int lsd_refine_;
+  double lsd_scale_;
+  double lsd_sigma_scale_;
+  double lsd_quant_;
+  double lsd_angle_threshold_;
+  double lsd_log_eps_;
+  double lsd_density_threshold_;
+  int lsd_n_bins_;
+  double lsd_line_length_threshold_;
 
   std::string window_name_;
   static bool need_config_update_;
@@ -104,6 +118,15 @@ class EdgeDetectionNodelet : public opencv_apps::Nodelet
     apply_blur_post_ = config_.apply_blur_post;
     postBlurSize_    = 2*((config_.postBlurSize)/2) + 1;
     postBlurSigma_   = config_.postBlurSigma;
+
+    lsd_refine_ =config_.lsd_refine_type;
+    lsd_scale_ = config_.lsd_scale;
+    lsd_sigma_scale_ = config_.lsd_sigma_scale;
+    lsd_angle_threshold_ = config_.lsd_angle_threshold;
+    lsd_log_eps_ = config_.lsd_log_eps;
+    lsd_density_threshold_ = config_.lsd_density_threshold;
+    lsd_n_bins_ = config_.lsd_n_bins;
+    lsd_line_length_threshold_ = config_.lsd_line_length_threshold;
   }
 
   const std::string &frameWithDefault(const std::string &frame, const std::string &image_frame)
@@ -233,8 +256,38 @@ class EdgeDetectionNodelet : public opencv_apps::Nodelet
             }
             break;
           }
-      }
+        case edge_detection::EdgeDetection_LineSegmentDetector:
+          {
+#if CV_MAJOR_VERSION == 3
+            cv::Ptr<cv::LineSegmentDetector> lsd = cv::createLineSegmentDetector(lsd_refine_, lsd_scale_,
+                                                                                 lsd_sigma_scale_, lsd_quant_,
+                                                                                 lsd_angle_threshold_, lsd_log_eps_,
+                                                                                 lsd_density_threshold_, lsd_n_bins_);
 
+            std::vector<cv::Vec4i> lines;
+            std::vector<float> widths;
+            std::vector<double> precs;
+            std::vector<double> nfas;
+            lsd->detect(src_gray, lines, widths, precs, nfas);
+            grad = cv::Mat::zeros(frame.rows, frame.cols, CV_8UC1);
+
+            // draw lines
+            for(size_t i = 0; i < lines.size(); ++i ) {
+              int x1 = lines[i][0];
+              int y1 = lines[i][1];
+              int x2 = lines[i][2];
+              int y2 = lines[i][3];
+              double line_length = sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
+              if (line_length >= lsd_line_length_threshold_) {
+                cv::line(grad, cv::Point(x1, y1), cv::Point(x2, y2), 255);
+              }
+            }
+#endif
+            new_window_name = "Line Segment Detector Demo";
+
+            break;
+          }
+      }
 
       if( debug_view_) {
         if (window_name_ != new_window_name) {

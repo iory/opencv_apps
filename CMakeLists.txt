@@ -8,6 +8,9 @@ message(STATUS "OpenCV Components: ${OpenCV_LIB_COMPONENTS}")
 if(OpenCV_VERSION VERSION_LESS "3.0" OR TARGET opencv_optflow)
   set(OPENCV_HAVE_OPTFLOW TRUE)
 endif()
+if(OpenCV_VERSION VERSION_LESS "3.0")
+  set(OPENCV_HAVE_LSD TRUE)
+endif()
 # Supporting CompressedImage in cv_bridge has been started from 1.11.9 (2015-11-29)
 # note : hydro 1.10.18, indigo : 1.11.13 ...
 # https://github.com/ros-perception/vision_opencv/pull/70
